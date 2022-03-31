@@ -79,32 +79,37 @@ public class NamesrvStartup {
             return null;
         }
 
+        //namesrv相关配置信息
         final NamesrvConfig namesrvConfig = new NamesrvConfig();
+        //netty网络相关配置信息
         final NettyServerConfig nettyServerConfig = new NettyServerConfig();
         nettyServerConfig.setListenPort(9876);
+        //-c 指定配置文件
         if (commandLine.hasOption('c')) {
             String file = commandLine.getOptionValue('c');
             if (file != null) {
+                //加载配置文件
                 InputStream in = new BufferedInputStream(new FileInputStream(file));
                 properties = new Properties();
                 properties.load(in);
+                //配置文件内容赋值或者覆盖给namesrvConfig
                 MixAll.properties2Object(properties, namesrvConfig);
+                //配置文件内容赋值或者覆盖给nettyServerConfig
                 MixAll.properties2Object(properties, nettyServerConfig);
-
+                //设置配置文件路径
                 namesrvConfig.setConfigStorePath(file);
-
                 System.out.printf("load config properties file OK, %s%n", file);
                 in.close();
             }
         }
-
+        //-p 打印 namesrvConfig ，nettyServerConfig中的所有配置信息
         if (commandLine.hasOption('p')) {
             InternalLogger console = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_CONSOLE_NAME);
             MixAll.printObjectProperties(console, namesrvConfig);
             MixAll.printObjectProperties(console, nettyServerConfig);
             System.exit(0);
         }
-
+        //最后将args中的属性赋值或者覆盖到namesrvConfig ，就是说 命令会覆盖配置文件
         MixAll.properties2Object(ServerUtil.commandLine2Properties(commandLine), namesrvConfig);
 
         if (null == namesrvConfig.getRocketmqHome()) {
@@ -123,6 +128,7 @@ public class NamesrvStartup {
         MixAll.printObjectProperties(log, namesrvConfig);
         MixAll.printObjectProperties(log, nettyServerConfig);
 
+        //实例化nsmesrv
         final NamesrvController controller = new NamesrvController(namesrvConfig, nettyServerConfig);
 
         // remember all configs to prevent discard

@@ -37,10 +37,12 @@ public class KVConfigManager {
     private final HashMap<String/* Namespace */, HashMap<String/* Key */, String/* Value */>> configTable =
         new HashMap<String, HashMap<String, String>>();
 
+    //构造函数
     public KVConfigManager(NamesrvController namesrvController) {
         this.namesrvController = namesrvController;
     }
 
+    //从本次文件加载到configTable缓存中
     public void load() {
         String content = null;
         try {

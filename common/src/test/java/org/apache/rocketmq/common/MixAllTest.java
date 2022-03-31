@@ -28,6 +28,24 @@ import org.junit.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class MixAllTest {
+
+    @Test
+    public void file2String() throws Exception {
+        String s = MixAll.file2String("C:\\Users\\15055\\Desktop\\临时文件\\download\\123.json");
+        System.out.println(s);
+    }
+
+    @Test
+    public void string2File() throws Exception {
+        String s = "{\n" +
+                "\t\"apiCode\": \"sfm_hos_gl\",\n" +
+                "\t\"bak\": \"\",\n" +
+                "\t\"qrstr\":\"CgYbG6VGOnoi3v1Pul+Cey8c+Lhx4dOwnj74QKboCQ3iTtpop2P8WTNuWUhaOG41WFEdZ9+5rCvcb8bN29Y3VmC78pnM1Jat8MVaDxFUmZjpRxKoOzdROr5xxT4AHCUR6bvtGBzvPIy6v0tPaXgDVS9mmtjbv8Lg\"\n" +
+                "}";
+        MixAll.string2File(s,"C:\\Users\\15055\\Desktop\\临时文件\\download\\123.json");
+        System.out.println(s);
+    }
+
     @Test
     public void testGetLocalInetAddress() throws Exception {
         List<String> localInetAddress = MixAll.getLocalInetAddress();
