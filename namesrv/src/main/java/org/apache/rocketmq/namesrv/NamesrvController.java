@@ -99,7 +99,7 @@ public class NamesrvController {
                 NamesrvController.this.kvConfigManager.printAllPeriodically();
             }
         }, 1, 10, TimeUnit.MINUTES);
-        //文件监听
+        //文件监听 不知道作用 TODO
         if (TlsSystemConfig.tlsMode != TlsMode.DISABLED) {
             // Register a listener to reload SslContext
             try {
