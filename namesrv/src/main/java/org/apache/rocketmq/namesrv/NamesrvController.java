@@ -56,9 +56,9 @@ public class NamesrvController {
     private RemotingServer remotingServer;
     //todo
     private BrokerHousekeepingService brokerHousekeepingService;
-    //定时任务
+    //线程池
     private ExecutorService remotingExecutor;
-    //配置类
+    //配置类保存了  namesrvConfig + nettyServerConfig 中的所有配置信息
     private Configuration configuration;
     //文件监听业务类
     private FileWatchService fileWatchService;
@@ -74,16 +74,16 @@ public class NamesrvController {
     }
 
     public boolean initialize() {
-
+        //从本地文件加载配置到configTable缓存中
         this.kvConfigManager.load();
-
+        //实例化 remotingServer
         this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.brokerHousekeepingService);
-
+        //创建线程池
         this.remotingExecutor =
             Executors.newFixedThreadPool(nettyServerConfig.getServerWorkerThreads(), new ThreadFactoryImpl("RemotingExecutorThread_"));
-
+        //集群测试 目前不知道有啥用 TODO
         this.registerProcessor();
-
+        //创建broker心跳检测定时任务
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
@@ -91,7 +91,7 @@ public class NamesrvController {
                 NamesrvController.this.routeInfoManager.scanNotActiveBroker();
             }
         }, 5, 10, TimeUnit.SECONDS);
-
+        //创建打印配置信息定时任务
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
@@ -99,7 +99,7 @@ public class NamesrvController {
                 NamesrvController.this.kvConfigManager.printAllPeriodically();
             }
         }, 1, 10, TimeUnit.MINUTES);
-
+        //文件监听
         if (TlsSystemConfig.tlsMode != TlsMode.DISABLED) {
             // Register a listener to reload SslContext
             try {

@@ -42,7 +42,6 @@ public class KVConfigManager {
         this.namesrvController = namesrvController;
     }
 
-    //从本次文件加载到configTable缓存中
     public void load() {
         String content = null;
         try {
