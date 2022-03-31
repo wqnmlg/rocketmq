@@ -54,7 +54,7 @@ public class NamesrvController {
     private final RouteInfoManager routeInfoManager;
     //远程服务信息
     private RemotingServer remotingServer;
-
+    //todo
     private BrokerHousekeepingService brokerHousekeepingService;
     //定时任务
     private ExecutorService remotingExecutor;
@@ -69,10 +69,7 @@ public class NamesrvController {
         this.kvConfigManager = new KVConfigManager(this);
         this.routeInfoManager = new RouteInfoManager();
         this.brokerHousekeepingService = new BrokerHousekeepingService(this);
-        this.configuration = new Configuration(
-            log,
-            this.namesrvConfig, this.nettyServerConfig
-        );
+        this.configuration = new Configuration(log,this.namesrvConfig, this.nettyServerConfig);
         this.configuration.setStorePathFromConfig(this.namesrvConfig, "configStorePath");
     }
 
