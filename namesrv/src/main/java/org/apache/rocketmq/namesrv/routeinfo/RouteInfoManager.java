@@ -50,10 +50,15 @@ public class RouteInfoManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
     private final static long BROKER_CHANNEL_EXPIRED_TIME = 1000 * 60 * 2;
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
+    //topic队列信息
     private final HashMap<String/* topic */, List<QueueData>> topicQueueTable;
+    //broker地址信息
     private final HashMap<String/* brokerName */, BrokerData> brokerAddrTable;
+    //broker集群信息->存储集群下所有的 brokerName
     private final HashMap<String/* clusterName */, Set<String/* brokerName */>> clusterAddrTable;
+    //broker活跃缓存 key 是broker地址
     private final HashMap<String/* brokerAddr */, BrokerLiveInfo> brokerLiveTable;
+    //过滤缓存
     private final HashMap<String/* brokerAddr */, List<String>/* Filter Server */> filterServerTable;
 
     public RouteInfoManager() {
@@ -439,12 +444,15 @@ public class RouteInfoManager {
         return null;
     }
 
+    //扫描不活跃的broker
     public void scanNotActiveBroker() {
         Iterator<Entry<String, BrokerLiveInfo>> it = this.brokerLiveTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<String, BrokerLiveInfo> next = it.next();
             long last = next.getValue().getLastUpdateTimestamp();
+            //如果 broker上次心跳时间+2分钟小于当前时间->也就是说broker超过2分钟没有发送心跳包
             if ((last + BROKER_CHANNEL_EXPIRED_TIME) < System.currentTimeMillis()) {
+                //关闭channel
                 RemotingUtil.closeChannel(next.getValue().getChannel());
                 it.remove();
                 log.warn("The broker channel expired, {} {}ms", next.getKey(), BROKER_CHANNEL_EXPIRED_TIME);
@@ -766,9 +774,13 @@ public class RouteInfoManager {
 }
 
 class BrokerLiveInfo {
+    //上次更新时间
     private long lastUpdateTimestamp;
+    //版本
     private DataVersion dataVersion;
+    //通道
     private Channel channel;
+    //从节点地址
     private String haServerAddr;
 
     public BrokerLiveInfo(long lastUpdateTimestamp, DataVersion dataVersion, Channel channel,
