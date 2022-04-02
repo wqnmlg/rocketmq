@@ -236,7 +236,7 @@ public class RouteInfoManager {
             log.info("new topic registered, {} {}", topicConfig.getTopicName(), queueData);
         } else {
             boolean addNewOne = true;
-            //否则遍历 topic 集合 ,判断 集合中是否已存在这条数据，如果存在一摸一样的数据则过滤，如果与系统中不一样则删除 重新 add
+            //否则遍历 topic 集合 ,判断 集合中是否已存在这条数据，如果存在一摸一样的数据则过滤，如果与系统中保存的不一样则删除 重新 add
             Iterator<QueueData> it = queueDataList.iterator();
             while (it.hasNext()) {
                 QueueData qd = it.next();
