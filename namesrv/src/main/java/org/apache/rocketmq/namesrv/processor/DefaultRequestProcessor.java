@@ -160,7 +160,7 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
         //解析拿到请求头
         final PutKVConfigRequestHeader requestHeader =
             (PutKVConfigRequestHeader) request.decodeCommandCustomHeader(PutKVConfigRequestHeader.class);
-
+        // 获取namespace
         if (requestHeader.getNamespace() == null || requestHeader.getKey() == null) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("namespace or key is null");
@@ -185,7 +185,7 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
         final GetKVConfigResponseHeader responseHeader = (GetKVConfigResponseHeader) response.readCustomHeader();
         final GetKVConfigRequestHeader requestHeader =
             (GetKVConfigRequestHeader) request.decodeCommandCustomHeader(GetKVConfigRequestHeader.class);
-
+        // 根据namespace 和 key 查询 配置信息
         String value = this.namesrvController.getKvConfigManager().getKVConfig(
             requestHeader.getNamespace(),
             requestHeader.getKey()
@@ -285,14 +285,15 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
         final QueryDataVersionResponseHeader responseHeader = (QueryDataVersionResponseHeader) response.readCustomHeader();
         final QueryDataVersionRequestHeader requestHeader =
             (QueryDataVersionRequestHeader) request.decodeCommandCustomHeader(QueryDataVersionRequestHeader.class);
+        //从请求头中拿到broker版本信息
         DataVersion dataVersion = DataVersion.decode(request.getBody(), DataVersion.class);
-        //判断broker是否发生变化
+        //判断broker是否发生变化（从broker缓存中拿到broker版本与入参版本进行对比）
         Boolean changed = this.namesrvController.getRouteInfoManager().isBrokerTopicConfigChanged(requestHeader.getBrokerAddr(), dataVersion);
         //如果没有发生变化则更新心跳时间
         if (!changed) {
             this.namesrvController.getRouteInfoManager().updateBrokerInfoUpdateTimestamp(requestHeader.getBrokerAddr());
         }
-        //获取broker当前版本信息
+        //获取broker当前版本信息（从broker缓存中拿到broker版本）
         DataVersion nameSeverDataVersion = this.namesrvController.getRouteInfoManager().queryBrokerTopicConfig(requestHeader.getBrokerAddr());
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
@@ -325,7 +326,7 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
             topicConfigWrapper.getDataVersion().setCounter(new AtomicLong(0));
             topicConfigWrapper.getDataVersion().setTimestamp(0);
         }
-
+        //真正broker注册逻辑
         RegisterBrokerResult result = this.namesrvController.getRouteInfoManager().registerBroker(
             requestHeader.getClusterName(),
             requestHeader.getBrokerAddr(),
