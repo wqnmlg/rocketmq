@@ -97,20 +97,30 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     private final InternalLogger log = ClientLogger.getLog();
     private final Random random = new Random();
     private final DefaultMQProducer defaultMQProducer;
+    //路由信息
     private final ConcurrentMap<String/* topic */, TopicPublishInfo> topicPublishInfoTable =
         new ConcurrentHashMap<String, TopicPublishInfo>();
     private final ArrayList<SendMessageHook> sendMessageHookList = new ArrayList<SendMessageHook>();
     private final ArrayList<EndTransactionHook> endTransactionHookList = new ArrayList<EndTransactionHook>();
+    //加解密
     private final RPCHook rpcHook;
+    //默认异步消息发送队列
     private final BlockingQueue<Runnable> asyncSenderThreadPoolQueue;
+    //默认异步消息发送线程池
     private final ExecutorService defaultAsyncSenderExecutor;
+    //请求检查队列
     protected BlockingQueue<Runnable> checkRequestQueue;
+    //请求检查线程池
     protected ExecutorService checkExecutor;
+    //服务状态
     private ServiceState serviceState = ServiceState.CREATE_JUST;
+    //核心类
     private MQClientInstance mQClientFactory;
+    //权限检查
     private ArrayList<CheckForbiddenHook> checkForbiddenHookList = new ArrayList<CheckForbiddenHook>();
     private int zipCompressLevel = Integer.parseInt(System.getProperty(MixAll.MESSAGE_COMPRESS_LEVEL, "5"));
     private MQFaultStrategy mqFaultStrategy = new MQFaultStrategy();
+    //异步发送线程池
     private ExecutorService asyncSenderExecutor;
 
     public DefaultMQProducerImpl(final DefaultMQProducer defaultMQProducer) {
@@ -551,18 +561,21 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         long beginTimestampFirst = System.currentTimeMillis();
         long beginTimestampPrev = beginTimestampFirst;
         long endTimestamp = beginTimestampFirst;
-        //根据topic查询 发布信息
+        //根据topic查询 路由信息
         TopicPublishInfo topicPublishInfo = this.tryToFindTopicPublishInfo(msg.getTopic());
         if (topicPublishInfo != null && topicPublishInfo.ok()) {
             boolean callTimeout = false;
             MessageQueue mq = null;
             Exception exception = null;
             SendResult sendResult = null;
+            //发送次数 同步发送timesTotal=3（第1次发送失败的话会重试2次总计3次） ，异步发送只需要发送1次
             int timesTotal = communicationMode == CommunicationMode.SYNC ? 1 + this.defaultMQProducer.getRetryTimesWhenSendFailed() : 1;
             int times = 0;
             String[] brokersSent = new String[timesTotal];
             for (; times < timesTotal; times++) {
+                //获取上次发送失败的brokerName
                 String lastBrokerName = null == mq ? null : mq.getBrokerName();
+                //根据负载均衡算法选择一个队列
                 MessageQueue mqSelected = this.selectOneMessageQueue(topicPublishInfo, lastBrokerName);
                 if (mqSelected != null) {
                     mq = mqSelected;
