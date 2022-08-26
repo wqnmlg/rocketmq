@@ -54,7 +54,7 @@ public class NamesrvController {
     private final RouteInfoManager routeInfoManager;
     //远程服务信息
     private RemotingServer remotingServer;
-    //todo
+    //Broker通道状态监听类，当监听到通道异常或者关闭 则在nameServ删除该broker信息
     private BrokerHousekeepingService brokerHousekeepingService;
     //线程池
     private ExecutorService remotingExecutor;
@@ -79,13 +79,11 @@ public class NamesrvController {
         //实例化 remotingServer
         this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.brokerHousekeepingService);
         //创建线程池
-        this.remotingExecutor =
-            Executors.newFixedThreadPool(nettyServerConfig.getServerWorkerThreads(), new ThreadFactoryImpl("RemotingExecutorThread_"));
+        this.remotingExecutor =Executors.newFixedThreadPool(nettyServerConfig.getServerWorkerThreads(), new ThreadFactoryImpl("RemotingExecutorThread_"));
         //注册netty处理业务类
         this.registerProcessor();
         //创建broker心跳检测定时任务
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-
             @Override
             public void run() {
                 NamesrvController.this.routeInfoManager.scanNotActiveBroker();
@@ -99,7 +97,7 @@ public class NamesrvController {
                 NamesrvController.this.kvConfigManager.printAllPeriodically();
             }
         }, 1, 10, TimeUnit.MINUTES);
-        //文件监听 不知道作用 TODO
+        //文件监听类 当检测配置文件发生变化 重新加载配置文件到系统中
         if (TlsSystemConfig.tlsMode != TlsMode.DISABLED) {
             // Register a listener to reload SslContext
             try {
@@ -143,18 +141,17 @@ public class NamesrvController {
 
     private void registerProcessor() {
         if (namesrvConfig.isClusterTest()) {
-
             this.remotingServer.registerDefaultProcessor(new ClusterTestRequestProcessor(this, namesrvConfig.getProductEnvName()),
                 this.remotingExecutor);
         } else {
-
             this.remotingServer.registerDefaultProcessor(new DefaultRequestProcessor(this), this.remotingExecutor);
         }
     }
 
     public void start() throws Exception {
+        //启动netty服务
         this.remotingServer.start();
-
+        //启动文件监听线程
         if (this.fileWatchService != null) {
             this.fileWatchService.start();
         }
