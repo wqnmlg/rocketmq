@@ -609,7 +609,7 @@ public class MQClientInstance {
                 try {
                     TopicRouteData topicRouteData;
                     if (isDefault && defaultMQProducer != null) {
-                        //如果使用默认查询
+                        //如果使用默认查询 读写队列数量 取 默认值4和拿到的读队列的最小值
                         topicRouteData = this.mQClientAPIImpl.getDefaultTopicRouteInfoFromNameServer(defaultMQProducer.getCreateTopicKey(),
                             clientConfig.getMqClientApiTimeout());
                         if (topicRouteData != null) {

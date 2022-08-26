@@ -81,7 +81,7 @@ public class NamesrvController {
         //创建线程池
         this.remotingExecutor =
             Executors.newFixedThreadPool(nettyServerConfig.getServerWorkerThreads(), new ThreadFactoryImpl("RemotingExecutorThread_"));
-        //集群测试 目前不知道有啥用 TODO
+        //注册netty处理业务类
         this.registerProcessor();
         //创建broker心跳检测定时任务
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
@@ -91,7 +91,7 @@ public class NamesrvController {
                 NamesrvController.this.routeInfoManager.scanNotActiveBroker();
             }
         }, 5, 10, TimeUnit.SECONDS);
-        //创建打印配置信息定时任务
+        //创建每10秒打印配置信息定时任务
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
