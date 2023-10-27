@@ -49,5 +49,6 @@ public class KVConfigManagerTest extends NameServerInstanceTest {
         Assert.assertTrue(kvConfig == null);
         String value = kvConfigManager.getKVConfig(NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG, "UnitTest");
         assertThat(value).isNull();
+        kvConfigManager.persist();
     }
 }

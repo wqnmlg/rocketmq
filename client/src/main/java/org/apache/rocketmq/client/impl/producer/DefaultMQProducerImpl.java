@@ -553,9 +553,13 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         Message msg,
         final CommunicationMode communicationMode,
         final SendCallback sendCallback,
-        final long timeout
-    ) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+        final long timeout) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+
+        //timeout 发送超时时间，如果发送失败会重试，即 timeout = 第一次+ 所有发送失败 的案件时间
+
+        // 服务状态校验
         this.makeSureStateOK();
+        // message topic合法，body非空，长度等基本信息校验
         Validators.checkMessage(msg, this.defaultMQProducer);
         final long invokeID = random.nextLong();
         long beginTimestampFirst = System.currentTimeMillis();
@@ -565,33 +569,39 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         TopicPublishInfo topicPublishInfo = this.tryToFindTopicPublishInfo(msg.getTopic());
         if (topicPublishInfo != null && topicPublishInfo.ok()) {
             boolean callTimeout = false;
+            //发送消息的队列
             MessageQueue mq = null;
+            //发送异常信息
             Exception exception = null;
+            //发送结果
             SendResult sendResult = null;
             //发送次数 同步发送timesTotal=3（第1次发送失败的话会重试2次总计3次） ，异步发送只需要发送1次
             int timesTotal = communicationMode == CommunicationMode.SYNC ? 1 + this.defaultMQProducer.getRetryTimesWhenSendFailed() : 1;
             int times = 0;
+            //跟据发送次数 创建一个数组 保存每次发送的 brokerName(当重试的时候过滤上次 失败的broker)
             String[] brokersSent = new String[timesTotal];
             for (; times < timesTotal; times++) {
                 //获取上次发送失败的brokerName
                 String lastBrokerName = null == mq ? null : mq.getBrokerName();
-                //根据负载均衡算法选择一个队列
+                //根据负载均衡算法选择一个队列 TODO
                 MessageQueue mqSelected = this.selectOneMessageQueue(topicPublishInfo, lastBrokerName);
                 if (mqSelected != null) {
                     mq = mqSelected;
                     brokersSent[times] = mq.getBrokerName();
                     try {
+                        //发送开始时间
                         beginTimestampPrev = System.currentTimeMillis();
                         if (times > 0) {
                             //Reset topic with namespace during resend.
                             msg.setTopic(this.defaultMQProducer.withNamespace(msg.getTopic()));
                         }
                         long costTime = beginTimestampPrev - beginTimestampFirst;
+                        // 如果 发送时间超过限制时间 直接 break 不再发送
                         if (timeout < costTime) {
                             callTimeout = true;
                             break;
                         }
-
+                        // 最大处理时间  = timeout - costTime 发送消息
                         sendResult = this.sendKernelImpl(msg, mq, communicationMode, sendCallback, topicPublishInfo, timeout - costTime);
                         endTimestamp = System.currentTimeMillis();
                         this.updateFaultItem(mq.getBrokerName(), endTimestamp - beginTimestampPrev, false);

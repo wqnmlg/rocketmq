@@ -67,11 +67,14 @@ public class TopicPublishInfo {
     }
 
     public MessageQueue selectOneMessageQueue(final String lastBrokerName) {
+        // 如果 lastBrokerName 不为空 直接获取队列
         if (lastBrokerName == null) {
             return selectOneMessageQueue();
         } else {
             for (int i = 0; i < this.messageQueueList.size(); i++) {
+                //获取随机数
                 int index = this.sendWhichQueue.incrementAndGet();
+                // 随机数 于队列数 取模运算 得到待取队列下标
                 int pos = Math.abs(index) % this.messageQueueList.size();
                 if (pos < 0)
                     pos = 0;

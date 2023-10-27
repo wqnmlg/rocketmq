@@ -330,9 +330,10 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * @throws InterruptedException if the sending thread is interrupted.
      */
     @Override
-    public SendResult send(
-        Message msg) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+    public SendResult send(Message msg) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+        // 如果 在创建 producer的时候带了 namespace单数 ，那么这个地方会对topic重新的赋值为 namespace%topic
         msg.setTopic(withNamespace(msg.getTopic()));
+        // 调用 内部实现 defaultMQProducerImpl 去发送消息
         return this.defaultMQProducerImpl.send(msg);
     }
 

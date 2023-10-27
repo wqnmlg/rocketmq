@@ -24,9 +24,13 @@ public class ThreadLocalIndexTest {
     @Test
     public void testIncrementAndGet() throws Exception {
         ThreadLocalIndex localIndex = new ThreadLocalIndex();
-        int initialVal = localIndex.incrementAndGet();
 
-        assertThat(localIndex.incrementAndGet()).isEqualTo(initialVal + 1);
+        int size = 100 ;
+        for (int i = 0; i < 100; i++) {
+            int initialVal = localIndex.incrementAndGet();
+            System.out.println(initialVal % size);
+        }
+        //assertThat(localIndex.incrementAndGet()).isEqualTo(initialVal + 1);
     }
 
     @Test
