@@ -39,7 +39,7 @@ RocketMQ集群中每一个Broker节点均用于存储Client端收集并发送过
 
 ### 2.4 启动开启消息轨迹的Broker
 `nohup sh mqbroker -c ../conf/2m-noslave/broker-a.properties &`
-  
+
 ## 3. 保存消息轨迹的Topic定义
 RocketMQ的消息轨迹特性支持两种存储轨迹数据的方式：
 
