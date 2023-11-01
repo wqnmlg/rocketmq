@@ -234,11 +234,14 @@ public class MQClientInstance {
                     }
                     // Start request-response channel
                     this.mQClientAPIImpl.start();
-                    // Start various schedule tasks 启动一系列定时任务
+                    // Start various schedule tasks
+                    //启动一系列定时任务
                     this.startScheduledTask();
-                    // Start pull service 消费者拉取服务service
+                    // Start pull service
+                    //消费者拉取服务service
                     this.pullMessageService.start();
-                    // Start rebalance service 消费者负载均衡服务
+                    // Start rebalance service
+                    // 消费者负载均衡服务
                     this.rebalanceService.start();
                     // Start push service
                     this.defaultMQProducer.getDefaultMQProducerImpl().start(false);
@@ -292,7 +295,7 @@ public class MQClientInstance {
                 }
             }
         }, 1000, this.clientConfig.getHeartbeatBrokerInterval(), TimeUnit.MILLISECONDS);
-        // 实例化消费偏移量
+        // 每隔5秒保存一次消费进度
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
