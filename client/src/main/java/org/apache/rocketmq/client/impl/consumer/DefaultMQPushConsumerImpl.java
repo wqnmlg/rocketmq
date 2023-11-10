@@ -579,9 +579,9 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 this.serviceState = ServiceState.START_FAILED;
                 //配置文件校验
                 this.checkConfig();
-
+                //TODO
                 this.copySubscription();
-
+                //如果是集群模式需要将实例名称变更为进程ID
                 if (this.defaultMQPushConsumer.getMessageModel() == MessageModel.CLUSTERING) {
                     this.defaultMQPushConsumer.changeInstanceNameToPID();
                 }
@@ -655,6 +655,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         this.updateTopicSubscribeInfoWhenSubscriptionChanged();
         this.mQClientFactory.checkClientInBroker();
         this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
+        //立即做一次重平衡
         this.mQClientFactory.rebalanceImmediately();
     }
 
@@ -1019,6 +1020,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         try {
             this.makeSureStateOK();
             Set<MessageQueue> mqs = new HashSet<MessageQueue>();
+            // processQueueTable 数据是如何变更的
             Set<MessageQueue> allocateMq = this.rebalanceImpl.getProcessQueueTable().keySet();
             mqs.addAll(allocateMq);
 

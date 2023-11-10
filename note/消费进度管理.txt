@@ -1,0 +1,19 @@
+1、消息进度的实现总共有2个
+    1.1 LocalFileOffsetStore 基于广播模式的消息消费每个消费者把消费进度存储在本地
+    1.2 RemoteBrokerOffsetStore 基于集群模式的消费者 将消息消费进度存储在broker
+2、公共接口 OffsetStore
+    2.1 load LocalFileOffsetStore才会使用 用于从本地文件加载消费进度
+    2.2 updateOffset 更新消费进度 这个方法接收一个increaseOnly 参数用来表示当 offsetTable中已经存在该队列的消费进度的时候是否更新（旧值和新值取最大值）
+    2.3 readOffset 读取消费进度 这个方法接收一个ReadOffsetType 参数 用来表示是从缓存获取还是文件和broker读取消费进度
+    2.4 persistAll 存储消费进度 多个
+    2.5 persist 存储消费进度 单个   LocalFileOffsetStore 不做操作 ，RemoteBrokerOffsetStore向broker更新
+    2.6 removeOffset 删除消费进度  LocalFileOffsetStore不做操作 ，RemoteBrokerOffsetStore 仅在缓存中删除消费进度
+    2.7 cloneOffsetTable 克隆消费进度
+    2.8 updateConsumeOffsetToBroker 将消费进度更新到远程Broker 只有RemoteBrokerOffsetStore 才会使用
+
+3、详细解释
+    3.1 LocalFileOffsetStore 和 RemoteBrokerOffsetStore 都有一个 offsetTable 属性 其类型是 ConcurrentMap 用来缓存消息的消费进度
+        updateOffset 方式实际上就是更新 offsetTable 中的消费进度 并没有更新到文件或者远程broker
+
+4、总结 api比较简单 需要关注对于消费进度的更新在什么时机调用的
+

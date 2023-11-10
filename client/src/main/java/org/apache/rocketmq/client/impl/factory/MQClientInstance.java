@@ -484,6 +484,7 @@ public class MQClientInstance {
     }
 
     private void persistAllConsumerOffset() {
+        //获取所有消费者 遍历消费者 调用消费者内部方法来实现持久化
         Iterator<Entry<String, MQConsumerInner>> it = this.consumerTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<String, MQConsumerInner> entry = it.next();
