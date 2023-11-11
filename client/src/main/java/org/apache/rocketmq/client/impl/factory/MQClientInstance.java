@@ -959,6 +959,7 @@ public class MQClientInstance {
     }
 
     public void doRebalance() {
+        //该函数用于执行重均衡操作，遍历consumerTable中的每一个消费者，调用其doRebalance方法进行重均衡，若出现异常则记录日志
         for (Map.Entry<String, MQConsumerInner> entry : this.consumerTable.entrySet()) {
             MQConsumerInner impl = entry.getValue();
             if (impl != null) {
