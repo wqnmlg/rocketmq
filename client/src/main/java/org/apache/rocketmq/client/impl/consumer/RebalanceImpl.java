@@ -43,7 +43,9 @@ import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 
 public abstract class RebalanceImpl {
     protected static final InternalLogger log = ClientLogger.getLog();
+    //当前消费者正在处理的消费队列
     protected final ConcurrentMap<MessageQueue, ProcessQueue> processQueueTable = new ConcurrentHashMap<MessageQueue, ProcessQueue>(64);
+    // topic 对应的所有队列信息
     protected final ConcurrentMap<String/* topic */, Set<MessageQueue>> topicSubscribeInfoTable =
         new ConcurrentHashMap<String, Set<MessageQueue>>();
     protected final ConcurrentMap<String /* topic */, SubscriptionData> subscriptionInner =
@@ -215,11 +217,13 @@ public abstract class RebalanceImpl {
     }
 
     public void doRebalance(final boolean isOrder) {
+        //获取多有订阅的主题信息集合
         Map<String, SubscriptionData> subTable = this.getSubscriptionInner();
         if (subTable != null) {
             for (final Map.Entry<String, SubscriptionData> entry : subTable.entrySet()) {
                 final String topic = entry.getKey();
                 try {
+                    //跟据topic做负载均衡
                     this.rebalanceByTopic(topic, isOrder);
                 } catch (Throwable e) {
                     if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
@@ -237,10 +241,13 @@ public abstract class RebalanceImpl {
     }
 
     private void rebalanceByTopic(final String topic, final boolean isOrder) {
+        // 跟据消费类型 广播 集群 执行不同的负载均衡代码
         switch (messageModel) {
             case BROADCASTING: {
+                // 广播模式 跟据topic 查询出所有的队列
                 Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic);
                 if (mqSet != null) {
+                    //TODO 将重新负载均衡结果保存到 ProcessQueueTable
                     boolean changed = this.updateProcessQueueTableInRebalance(topic, mqSet, isOrder);
                     if (changed) {
                         this.messageQueueChanged(topic, mqSet, mqSet);
@@ -256,7 +263,9 @@ public abstract class RebalanceImpl {
                 break;
             }
             case CLUSTERING: {
+                //集群模式 跟据topic 查询出所有的队列
                 Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic);
+                //实时 查询出消费者组下的所有消费者
                 List<String> cidAll = this.mQClientFactory.findConsumerIdList(topic, consumerGroup);
                 if (null == mqSet) {
                     if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
@@ -271,7 +280,7 @@ public abstract class RebalanceImpl {
                 if (mqSet != null && cidAll != null) {
                     List<MessageQueue> mqAll = new ArrayList<MessageQueue>();
                     mqAll.addAll(mqSet);
-
+                    // 对队列和 消费者进行排序
                     Collections.sort(mqAll);
                     Collections.sort(cidAll);
 
@@ -279,6 +288,7 @@ public abstract class RebalanceImpl {
 
                     List<MessageQueue> allocateResult = null;
                     try {
+                        //负载均衡 获取到本次 队列数据
                         allocateResult = strategy.allocate(
                             this.consumerGroup,
                             this.mQClientFactory.getClientId(),
@@ -294,7 +304,7 @@ public abstract class RebalanceImpl {
                     if (allocateResult != null) {
                         allocateResultSet.addAll(allocateResult);
                     }
-
+                    //TODO 将重新负载均衡结果保存到 ProcessQueueTable
                     boolean changed = this.updateProcessQueueTableInRebalance(topic, allocateResultSet, isOrder);
                     if (changed) {
                         log.info(
@@ -330,6 +340,8 @@ public abstract class RebalanceImpl {
         final boolean isOrder) {
         boolean changed = false;
 
+
+        //遍历进程中正在处理的队列 过滤和删除旧队列
         Iterator<Entry<MessageQueue, ProcessQueue>> it = this.processQueueTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<MessageQueue, ProcessQueue> next = it.next();
@@ -337,6 +349,7 @@ public abstract class RebalanceImpl {
             ProcessQueue pq = next.getValue();
 
             if (mq.getTopic().equals(topic)) {
+                // 如果新的消费队列中 不包含 此队列 则将 ProcessQueue 标记为丢弃
                 if (!mqSet.contains(mq)) {
                     pq.setDropped(true);
                     if (this.removeUnnecessaryMessageQueue(mq, pq)) {
@@ -363,7 +376,7 @@ public abstract class RebalanceImpl {
                 }
             }
         }
-
+        //遍历新的消费队列 过滤和添加新队列
         List<PullRequest> pullRequestList = new ArrayList<PullRequest>();
         for (MessageQueue mq : mqSet) {
             if (!this.processQueueTable.containsKey(mq)) {
@@ -402,7 +415,7 @@ public abstract class RebalanceImpl {
                 }
             }
         }
-
+        // 拉取消息
         this.dispatchPullRequest(pullRequestList);
 
         return changed;

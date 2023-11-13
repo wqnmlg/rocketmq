@@ -659,7 +659,7 @@ public class MQClientInstance {
                                 }
                             }
 
-                            // Update sub info
+                            // Update sub info 更新消费者的队列信息
                             if (!consumerTable.isEmpty()) {
                                 Set<MessageQueue> subscribeInfo = topicRouteData2TopicSubscribeInfo(topic, topicRouteData);
                                 Iterator<Entry<String, MQConsumerInner>> it = this.consumerTable.entrySet().iterator();
