@@ -101,7 +101,7 @@ public class HAConnection {
         @Override
         public void run() {
             HAConnection.log.info(this.getServiceName() + " service started");
-
+            //循环读取
             while (!this.isStopped()) {
                 try {
                     this.selector.select(1000);
@@ -121,7 +121,7 @@ public class HAConnection {
                     break;
                 }
             }
-
+            //关闭资源
             this.makeStop();
 
             writeSocketService.makeStop();
@@ -150,6 +150,7 @@ public class HAConnection {
             return ReadSocketService.class.getSimpleName();
         }
 
+        //进程读取事件
         private boolean processReadEvent() {
             int readSizeZeroTimes = 0;
 

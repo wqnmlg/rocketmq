@@ -47,18 +47,19 @@ public class HAService {
     private final AtomicInteger connectionCount = new AtomicInteger(0);
 
     private final List<HAConnection> connectionList = new LinkedList<>();
-
+    // 接收socket连接服务
     private final AcceptSocketService acceptSocketService;
-
+    //默认的消息存储服务
     private final DefaultMessageStore defaultMessageStore;
 
     private final WaitNotifyObject waitNotifyObject = new WaitNotifyObject();
     private final AtomicLong push2SlaveMaxOffset = new AtomicLong(0);
-
+    //TODO
     private final GroupTransferService groupTransferService;
 
     private final HAClient haClient;
 
+    //构造函数
     public HAService(final DefaultMessageStore defaultMessageStore) throws IOException {
         this.defaultMessageStore = defaultMessageStore;
         this.acceptSocketService =
@@ -67,12 +68,14 @@ public class HAService {
         this.haClient = new HAClient();
     }
 
+    //更新主 Broker 地址
     public void updateMasterAddress(final String newAddr) {
         if (this.haClient != null) {
             this.haClient.updateMasterAddress(newAddr);
         }
     }
 
+    //添加请求
     public void putRequest(final CommitLog.GroupCommitRequest request) {
         this.groupTransferService.putRequest(request);
     }
@@ -105,7 +108,7 @@ public class HAService {
     // public void notifyTransferSome() {
     // this.groupTransferService.notifyTransferSome();
     // }
-
+    //启动服务
     public void start() throws Exception {
         this.acceptSocketService.beginAccept();
         this.acceptSocketService.start();
@@ -113,18 +116,21 @@ public class HAService {
         this.haClient.start();
     }
 
+    //添加连接
     public void addConnection(final HAConnection conn) {
         synchronized (this.connectionList) {
             this.connectionList.add(conn);
         }
     }
 
+    //删除连接
     public void removeConnection(final HAConnection conn) {
         synchronized (this.connectionList) {
             this.connectionList.remove(conn);
         }
     }
 
+    //关闭资源
     public void shutdown() {
         this.haClient.shutdown();
         this.acceptSocketService.shutdown(true);
@@ -155,6 +161,7 @@ public class HAService {
     }
 
     /**
+     * 监听并创建从节点的连接
      * Listens to slave connections to create {@link HAConnection}.
      */
     class AcceptSocketService extends ServiceThread {
@@ -216,6 +223,8 @@ public class HAService {
                                         + sc.socket().getRemoteSocketAddress());
 
                                     try {
+                                        //对socketChannel进行封装得到一个HAConnection对象 并放入 连接集合中 调用 conn的线程方法
+                                        //注意这个地方并没有把 SocketChannel 注册到当前的selector
                                         HAConnection conn = new HAConnection(HAService.this, sc);
                                         conn.start();
                                         HAService.this.addConnection(conn);
