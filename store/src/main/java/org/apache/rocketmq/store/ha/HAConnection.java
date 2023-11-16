@@ -219,6 +219,7 @@ public class HAConnection {
         private long nextTransferFromWhere = -1;
         //消息体
         private SelectMappedBufferResult selectMappedBufferResult;
+        //上次写入数据是否结束
         private boolean lastWriteOver = true;
         //上次写入数据时间戳
         private long lastWriteTimestamp = System.currentTimeMillis();
