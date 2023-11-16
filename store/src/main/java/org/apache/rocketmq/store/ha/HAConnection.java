@@ -36,8 +36,9 @@ public class HAConnection {
     private final String clientAddr;
     private WriteSocketService writeSocketService;
     private ReadSocketService readSocketService;
-
+    //从节点请求的偏移量
     private volatile long slaveRequestOffset = -1;
+    //从节点已同步的偏移量
     private volatile long slaveAckOffset = -1;
 
     public HAConnection(final HAService haService, final SocketChannel socketChannel) throws IOException {
@@ -110,7 +111,7 @@ public class HAConnection {
                         HAConnection.log.error("processReadEvent error");
                         break;
                     }
-
+                    //超时判断
                     long interval = HAConnection.this.haService.getDefaultMessageStore().getSystemClock().now() - this.lastReadTimestamp;
                     if (interval > HAConnection.this.haService.getDefaultMessageStore().getMessageStoreConfig().getHaHousekeepingInterval()) {
                         log.warn("ha housekeeping, found this connection[" + HAConnection.this.clientAddr + "] expired, " + interval);
@@ -153,27 +154,33 @@ public class HAConnection {
         //进程读取事件
         private boolean processReadEvent() {
             int readSizeZeroTimes = 0;
-
+            //如果缓存中无可读资源 直接flip 并标记position为 0
             if (!this.byteBufferRead.hasRemaining()) {
                 this.byteBufferRead.flip();
                 this.processPosition = 0;
             }
-
+            //如果此时缓存中有可读数据
             while (this.byteBufferRead.hasRemaining()) {
                 try {
+                    //读取数据
                     int readSize = this.socketChannel.read(this.byteBufferRead);
                     if (readSize > 0) {
+                        //读取到0的次数
                         readSizeZeroTimes = 0;
+                        //上次读取时间戳
                         this.lastReadTimestamp = HAConnection.this.haService.getDefaultMessageStore().getSystemClock().now();
+                        //如果 缓存中有8个字节 则表示读取到一个消息
                         if ((this.byteBufferRead.position() - this.processPosition) >= 8) {
                             int pos = this.byteBufferRead.position() - (this.byteBufferRead.position() % 8);
                             long readOffset = this.byteBufferRead.getLong(pos - 8);
                             this.processPosition = pos;
-
+                            //更新slave的offset
                             HAConnection.this.slaveAckOffset = readOffset;
+                            //如果slave的请求offset小于0 则更新slave的请求offset
                             if (HAConnection.this.slaveRequestOffset < 0) {
                                 HAConnection.this.slaveRequestOffset = readOffset;
                                 log.info("slave[" + HAConnection.this.clientAddr + "] request offset " + readOffset);
+                            //如果slave的请求offset大于等于最大offset 则直接返回读取失败
                             } else if (HAConnection.this.slaveAckOffset > HAConnection.this.haService.getDefaultMessageStore().getMaxPhyOffset()) {
                                 log.warn("slave[{}] request offset={} greater than local commitLog offset={}. ",
                                         HAConnection.this.clientAddr,
@@ -181,7 +188,7 @@ public class HAConnection {
                                         HAConnection.this.haService.getDefaultMessageStore().getMaxPhyOffset());
                                 return false;
                             }
-
+                            //调用transferSome方法
                             HAConnection.this.haService.notifyTransferSome(HAConnection.this.slaveAckOffset);
                         }
                     } else if (readSize == 0) {

@@ -53,6 +53,7 @@ public class HAService {
     private final DefaultMessageStore defaultMessageStore;
 
     private final WaitNotifyObject waitNotifyObject = new WaitNotifyObject();
+    //推送给salve的最大偏移量
     private final AtomicLong push2SlaveMaxOffset = new AtomicLong(0);
     //TODO
     private final GroupTransferService groupTransferService;
@@ -90,6 +91,7 @@ public class HAService {
     }
 
     public void notifyTransferSome(final long offset) {
+        //如果本次请求的偏移量大于 已推送的偏移量 调用 notifyTransferSome 方法
         for (long value = this.push2SlaveMaxOffset.get(); offset > value; ) {
             boolean ok = this.push2SlaveMaxOffset.compareAndSet(value, offset);
             if (ok) {
@@ -258,6 +260,9 @@ public class HAService {
     }
 
     /**
+     * 贵惠保二期代理人工具 新需求 在做
+     * 特药4期系统改造和新需求在做
+     * 中银数据对接预计明天开始做
      * GroupTransferService Service
      */
     class GroupTransferService extends ServiceThread {
@@ -295,13 +300,14 @@ public class HAService {
         private void doWaitTransfer() {
             if (!this.requestsRead.isEmpty()) {
                 for (CommitLog.GroupCommitRequest req : this.requestsRead) {
+                    //判断 向salve 推送的消息偏移量是否大于 消息发送者发送消息时的消息偏移量 从而得出 消息是否已经同步给slave
                     boolean transferOK = HAService.this.push2SlaveMaxOffset.get() >= req.getNextOffset();
                     long deadLine = req.getDeadLine();
                     while (!transferOK && deadLine - System.nanoTime() > 0) {
                         this.notifyTransferObject.waitForRunning(1000);
                         transferOK = HAService.this.push2SlaveMaxOffset.get() >= req.getNextOffset();
                     }
-
+                    //唤醒客户端
                     req.wakeupCustomer(transferOK ? PutMessageStatus.PUT_OK : PutMessageStatus.FLUSH_SLAVE_TIMEOUT);
                 }
 
