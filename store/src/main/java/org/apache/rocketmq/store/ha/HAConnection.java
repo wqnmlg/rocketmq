@@ -214,10 +214,13 @@ public class HAConnection {
         private final SocketChannel socketChannel;
 
         private final int headerSize = 8 + 4;
+        //头信息
         private final ByteBuffer byteBufferHeader = ByteBuffer.allocate(headerSize);
         private long nextTransferFromWhere = -1;
+        //消息体
         private SelectMappedBufferResult selectMappedBufferResult;
         private boolean lastWriteOver = true;
+        //上次写入数据时间戳
         private long lastWriteTimestamp = System.currentTimeMillis();
 
         public WriteSocketService(final SocketChannel socketChannel) throws IOException {
@@ -234,12 +237,12 @@ public class HAConnection {
             while (!this.isStopped()) {
                 try {
                     this.selector.select(1000);
-
+                    //如果slave的请求offset小于0 则等待slave的请求offset
                     if (-1 == HAConnection.this.slaveRequestOffset) {
                         Thread.sleep(10);
                         continue;
                     }
-
+                    //计算出nextTransferFromWhere的值
                     if (-1 == this.nextTransferFromWhere) {
                         if (0 == HAConnection.this.slaveRequestOffset) {
                             long masterOffset = HAConnection.this.haService.getDefaultMessageStore().getCommitLog().getMaxOffset();
@@ -285,10 +288,11 @@ public class HAConnection {
                         if (!this.lastWriteOver)
                             continue;
                     }
-
+                    //查询数据
                     SelectMappedBufferResult selectResult =
                         HAConnection.this.haService.getDefaultMessageStore().getCommitLogData(this.nextTransferFromWhere);
                     if (selectResult != null) {
+                        //大小限制
                         int size = selectResult.getSize();
                         if (size > HAConnection.this.haService.getDefaultMessageStore().getMessageStoreConfig().getHaTransferBatchSize()) {
                             size = HAConnection.this.haService.getDefaultMessageStore().getMessageStoreConfig().getHaTransferBatchSize();
@@ -346,9 +350,11 @@ public class HAConnection {
             HAConnection.log.info(this.getServiceName() + " service end");
         }
 
+
+        //写入数据
         private boolean transferData() throws Exception {
             int writeSizeZeroTimes = 0;
-            // Write Header
+            // Write Header 写入头信息
             while (this.byteBufferHeader.hasRemaining()) {
                 int writeSize = this.socketChannel.write(this.byteBufferHeader);
                 if (writeSize > 0) {
@@ -369,7 +375,7 @@ public class HAConnection {
 
             writeSizeZeroTimes = 0;
 
-            // Write Body
+            // Write Body 写入消息体
             if (!this.byteBufferHeader.hasRemaining()) {
                 while (this.selectMappedBufferResult.getByteBuffer().hasRemaining()) {
                     int writeSize = this.socketChannel.write(this.selectMappedBufferResult.getByteBuffer());
