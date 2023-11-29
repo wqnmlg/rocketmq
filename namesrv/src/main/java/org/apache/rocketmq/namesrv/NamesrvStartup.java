@@ -44,7 +44,10 @@ import org.slf4j.LoggerFactory;
 public class NamesrvStartup {
 
     private static InternalLogger log;
+
+    //配置文件
     private static Properties properties = null;
+    //命令行
     private static CommandLine commandLine = null;
 
     public static void main(String[] args) {
@@ -71,8 +74,10 @@ public class NamesrvStartup {
     public static NamesrvController createNamesrvController(String[] args) throws IOException, JoranException {
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, Integer.toString(MQVersion.CURRENT_VERSION));
         //PackageConflictDetect.detectFastjson();
-
+        //构建命令行选项 -h 帮助  , -n namesrvAddr
         Options options = ServerUtil.buildCommandlineOptions(new Options());
+        //buildCommandlineOptions 构造命令行选项 -c 配置文件 -p 打印
+        //这个Java函数用于解析命令行参数。它将参数传递给ServerUtil类的parseCmdLine方法，并使用PosixParser来解析命令行参数。如果解析结果为null，则返回一个空的commandLine对象。
         commandLine = ServerUtil.parseCmdLine("mqnamesrv", args, buildCommandlineOptions(options), new PosixParser());
         if (null == commandLine) {
             System.exit(-1);
@@ -84,7 +89,7 @@ public class NamesrvStartup {
         //netty网络相关配置信息
         final NettyServerConfig nettyServerConfig = new NettyServerConfig();
         nettyServerConfig.setListenPort(9876);
-        //-c 指定配置文件
+        //-c :如果启动的时候指定了配置文件，则是用配置文件内容进行配置
         if (commandLine.hasOption('c')) {
             String file = commandLine.getOptionValue('c');
             if (file != null) {
